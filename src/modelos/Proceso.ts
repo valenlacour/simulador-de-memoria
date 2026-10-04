@@ -96,4 +96,21 @@ export class Proceso {
       throw new Error(`Se esperaba ${esperado} pero está ${this._estado}`);
     }
   }
+
+  bloquear(duracion: number): void {
+    Proceso.exigirEnteroPositivo(duracion, "duracion");
+    this.transicionar([EstadoProceso.EJECUTANDO], EstadoProceso.BLOQUEADO);
+    this._bloqueoRestante = duracion;
+  }
+
+  /** Reduce el temporizador de bloqueo y devuelve true cuando llega a cero. */
+  avanzarBloqueo(): boolean {
+    this.exigirEstado(EstadoProceso.BLOQUEADO);
+    this._bloqueoRestante--;
+    return this._bloqueoRestante === 0;
+  }
+
+  desbloquear(): void {
+    this.transicionar([EstadoProceso.BLOQUEADO], EstadoProceso.LISTO);
+  }
 }

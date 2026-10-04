@@ -89,3 +89,45 @@ describe("Proceso - ejecución (RF07)", () => {
     expect(() => p.renovarQuantum()).toThrow();
   });
 });
+
+describe("Proceso - bloqueo por E/S (RF08)", () => {
+  const crearEjecutando = () => {
+    const p = new Proceso(1, 100, 5);
+    p.admitir();
+    p.despachar();
+    return p;
+  };
+
+  it("bloquear guarda la duración y pasa a BLOQUEADO", () => {
+    const p = crearEjecutando();
+    p.bloquear(2);
+    expect(p.obtenerEstado()).toBe(EstadoProceso.BLOQUEADO);
+    expect(p.obtenerBloqueoRestante()).toBe(2);
+  });
+
+  it("avanzarBloqueo informa cuándo termina el bloqueo", () => {
+    const p = crearEjecutando();
+    p.bloquear(2);
+    expect(p.avanzarBloqueo()).toBe(false);
+    expect(p.avanzarBloqueo()).toBe(true);
+  });
+
+  it("desbloquear vuelve a LISTO", () => {
+    const p = crearEjecutando();
+    p.bloquear(1);
+    p.avanzarBloqueo();
+    p.desbloquear();
+    expect(p.obtenerEstado()).toBe(EstadoProceso.LISTO);
+  });
+
+  it("rechaza una duración inválida y el bloqueo fuera de la CPU", () => {
+    expect(() => crearEjecutando().bloquear(0)).toThrow();
+    const listo = new Proceso(2, 10, 1);
+    listo.admitir();
+    expect(() => listo.bloquear(1)).toThrow();
+  });
+
+  it("no avanza el bloqueo de un proceso que no está bloqueado", () => {
+    expect(() => crearEjecutando().avanzarBloqueo()).toThrow();
+  });
+});
