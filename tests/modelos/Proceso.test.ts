@@ -22,3 +22,24 @@ describe("Proceso - creación (RF02)", () => {
     expect(() => new Proceso(pid, memoria, cpu)).toThrow();
   });
 });
+describe("Proceso - admisión (RF03)", () => {
+  it("un proceso NUEVO pasa a LISTO al admitirse", () => {
+    const p = new Proceso(1, 100, 3);
+    p.admitir();
+    expect(p.obtenerEstado()).toBe(EstadoProceso.LISTO);
+  });
+
+  it("un proceso NUEVO puede esperar memoria y luego admitirse", () => {
+    const p = new Proceso(1, 100, 3);
+    p.esperarMemoria();
+    expect(p.obtenerEstado()).toBe(EstadoProceso.ESPERANDO_MEMORIA);
+    p.admitir();
+    expect(p.obtenerEstado()).toBe(EstadoProceso.LISTO);
+  });
+
+  it("no puede admitirse dos veces", () => {
+    const p = new Proceso(1, 100, 3);
+    p.admitir();
+    expect(() => p.admitir()).toThrow();
+  });
+});

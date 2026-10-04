@@ -52,4 +52,22 @@ export class Proceso {
       throw new Error(`${nombre} debe ser un entero positivo`);
     }
   }
+
+  esperarMemoria(): void {
+    this.transicionar([EstadoProceso.NUEVO], EstadoProceso.ESPERANDO_MEMORIA);
+  }
+
+  admitir(): void {
+    this.transicionar(
+      [EstadoProceso.NUEVO, EstadoProceso.ESPERANDO_MEMORIA],
+      EstadoProceso.LISTO,
+    );
+  }
+
+  private transicionar(permitidos: EstadoProceso[], destino: EstadoProceso): void {
+    if (!permitidos.includes(this._estado)) {
+      throw new Error(`Transición inválida: ${this._estado} -> ${destino}`);
+    }
+    this._estado = destino;
+  }
 }
