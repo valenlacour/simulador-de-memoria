@@ -131,3 +131,32 @@ describe("Proceso - bloqueo por E/S (RF08)", () => {
     expect(() => crearEjecutando().avanzarBloqueo()).toThrow();
   });
 });
+
+describe("Proceso - finalización (RF07)", () => {
+  it("termina cuando la CPU restante llega a cero", () => {
+    const p = new Proceso(1, 100, 1);
+    p.admitir();
+    p.despachar();
+    p.ejecutarTick();
+    p.terminar();
+    expect(p.obtenerEstado()).toBe(EstadoProceso.TERMINADO);
+  });
+
+  it("no termina con CPU pendiente", () => {
+    const p = new Proceso(1, 100, 3);
+    p.admitir();
+    p.despachar();
+    expect(() => p.terminar()).toThrow();
+  });
+
+  it("un proceso TERMINADO no vuelve a las colas", () => {
+    const p = new Proceso(1, 100, 1);
+    p.admitir();
+    p.despachar();
+    p.ejecutarTick();
+    p.terminar();
+    expect(() => p.admitir()).toThrow();
+    expect(() => p.despachar()).toThrow();
+    expect(() => p.expulsar()).toThrow();
+  });
+});

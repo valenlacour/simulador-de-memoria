@@ -113,4 +113,11 @@ export class Proceso {
   desbloquear(): void {
     this.transicionar([EstadoProceso.BLOQUEADO], EstadoProceso.LISTO);
   }
+
+  terminar(): void {
+    if (this._cpuRestante !== 0) {
+      throw new Error("El proceso todavía tiene CPU pendiente");
+    }
+    this.transicionar([EstadoProceso.EJECUTANDO], EstadoProceso.TERMINADO);
+  }
 }
