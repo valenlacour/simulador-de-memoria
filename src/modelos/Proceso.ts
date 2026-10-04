@@ -70,4 +70,30 @@ export class Proceso {
     }
     this._estado = destino;
   }
+
+  despachar(): void {
+    this.transicionar([EstadoProceso.LISTO], EstadoProceso.EJECUTANDO);
+    this._quantumConsumido = 0;
+  }
+
+  ejecutarTick(): void {
+    this.exigirEstado(EstadoProceso.EJECUTANDO);
+    this._cpuRestante--;
+    this._quantumConsumido++;
+  }
+
+  renovarQuantum(): void {
+    this.exigirEstado(EstadoProceso.EJECUTANDO);
+    this._quantumConsumido = 0;
+  }
+
+  expulsar(): void {
+    this.transicionar([EstadoProceso.EJECUTANDO], EstadoProceso.LISTO);
+  }
+
+  private exigirEstado(esperado: EstadoProceso): void {
+    if (this._estado !== esperado) {
+      throw new Error(`Se esperaba ${esperado} pero está ${this._estado}`);
+    }
+  }
 }

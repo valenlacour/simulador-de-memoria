@@ -43,3 +43,49 @@ describe("Proceso - admisión (RF03)", () => {
     expect(() => p.admitir()).toThrow();
   });
 });
+
+describe("Proceso - ejecución (RF07)", () => {
+  const crearListo = () => {
+    const p = new Proceso(1, 100, 3);
+    p.admitir();
+    return p;
+  };
+
+  it("despachar pasa a EJECUTANDO y reinicia el quantum", () => {
+    const p = crearListo();
+    p.despachar();
+    expect(p.obtenerEstado()).toBe(EstadoProceso.EJECUTANDO);
+    expect(p.obtenerQuantumConsumido()).toBe(0);
+  });
+
+  it("ejecutar un tick consume CPU y quantum", () => {
+    const p = crearListo();
+    p.despachar();
+    p.ejecutarTick();
+    expect(p.obtenerCpuRestante()).toBe(2);
+    expect(p.obtenerQuantumConsumido()).toBe(1);
+  });
+
+  it("renovar el quantum lo reinicia sin cambiar el estado", () => {
+    const p = crearListo();
+    p.despachar();
+    p.ejecutarTick();
+    p.renovarQuantum();
+    expect(p.obtenerQuantumConsumido()).toBe(0);
+    expect(p.obtenerEstado()).toBe(EstadoProceso.EJECUTANDO);
+  });
+
+  it("expulsar vuelve a LISTO", () => {
+    const p = crearListo();
+    p.despachar();
+    p.expulsar();
+    expect(p.obtenerEstado()).toBe(EstadoProceso.LISTO);
+  });
+
+  it("no se puede despachar ni ejecutar fuera de estado", () => {
+    const p = new Proceso(1, 100, 3);
+    expect(() => p.despachar()).toThrow();
+    expect(() => p.ejecutarTick()).toThrow();
+    expect(() => p.renovarQuantum()).toThrow();
+  });
+});
