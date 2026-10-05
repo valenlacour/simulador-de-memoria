@@ -49,3 +49,7 @@
 - Tareas: workflow de GitHub Actions que instala, verifica tipos y corre las pruebas con cobertura en cada push a main. Script `typecheck`. README con requisitos, instalación, comandos, alcance de la cobertura y estructura.
 - Decisiones: el CI usa `npm ci` y el mismo comando de cobertura que se documenta, así el reporte es reproducible sobre el commit entregado. El umbral de vitest.config.ts hace fallar el build si la cobertura de líneas no supera el 90%.
 - Obstáculos: al pegar texto ya renderizado se pierde el formato Markdown; ahora copio siempre desde el bloque de código.
+## 2026-10-05 (Comparación de políticas)
+- Tareas: pruebas que corren la misma carga con First-Fit, Best-Fit y Worst-Fit y comparan mapa final, procesos en espera, memoria libre, mayor hueco y fragmentación externa (14 tests). Quedan 316 tests en verde y cobertura del 100%.
+- Decisiones: un escenario donde gana cada política, para mostrar que ninguna es mejor en todos los casos. Una prueba muestra que un pedido espera aunque la memoria libre total alcance, y otra que la coalescencia al liberar el bloque separador elimina la fragmentación y permite admitir al proceso en espera.
+- Obstáculos: encontrar cargas donde cada política dé un resultado distinto; armé los huecos con quantum 1 para controlar en qué tick termina cada proceso.
