@@ -74,10 +74,30 @@ export class PlanificadorRoundRobin implements Planificador {
   }
 
   private resolverTick(proceso: Proceso): ResultadoEjecucion {
-    return this.continuar(proceso);
+    return this.resolverQuantum(proceso);
   }
 
   private continuar(proceso: Proceso): ResultadoEjecucion {
     return new ResultadoEjecucion(ResultadoCpu.CONTINUA, proceso.obtenerPid());
+  }
+
+  /** Fin de quantum: expulsa si hay otros Listos; si no, renueva el quantum sin cambio de contexto. */
+  private resolverQuantum(proceso: Proceso): ResultadoEjecucion {
+    if (proceso.obtenerQuantumConsumido() < this._quantum) {
+      return this.continuar(proceso);
+    }
+    return this._colaListos.length > 0 ? this.expulsar(proceso) : this.renovarQuantum(proceso);
+  }
+
+  private expulsar(proceso: Proceso): ResultadoEjecucion {
+    proceso.expulsar();
+    this._colaListos.push(proceso);
+    this._procesoEnCpu = null;
+    return new ResultadoEjecucion(ResultadoCpu.EXPULSION, proceso.obtenerPid());
+  }
+
+  private renovarQuantum(proceso: Proceso): ResultadoEjecucion {
+    proceso.renovarQuantum();
+    return new ResultadoEjecucion(ResultadoCpu.RENOVACION_QUANTUM, proceso.obtenerPid());
   }
 }

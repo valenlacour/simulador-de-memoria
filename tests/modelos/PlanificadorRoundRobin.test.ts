@@ -102,3 +102,69 @@ describe("PlanificadorRoundRobin - despacho y ejecución (RF06, RF07)", () => {
     expect(() => planificador.encolar(proceso)).toThrow();
   });
 });
+
+describe("PlanificadorRoundRobin - quantum (RF07)", () => {
+  const ejecutar = (planificador: PlanificadorRoundRobin, ticks: number) =>
+    Array.from({ length: ticks }, () => planificador.ejecutarTick());
+
+  it("al agotar el quantum con otros Listos expulsa al proceso al final de la cola", () => {
+    const planificador = new PlanificadorRoundRobin(2, sinEventos);
+    planificador.encolar(crearListo(1, 5));
+    planificador.encolar(crearListo(2, 5));
+    const [primero, segundo] = ejecutar(planificador, 2);
+    expect(primero.obtenerResultado()).toBe(ResultadoCpu.CONTINUA);
+    expect(segundo.obtenerResultado()).toBe(ResultadoCpu.EXPULSION);
+    expect(segundo.obtenerPid()).toBe(1);
+    expect(planificador.obtenerProcesoEnCpu()).toBeNull();
+    expect(planificador.obtenerColaListos().map((v) => v.obtenerPid())).toEqual([2, 1]);
+    expect(planificador.obtenerColaListos()[1].obtenerEstado()).toBe(EstadoProceso.LISTO);
+  });
+
+  it("tras la expulsión el siguiente proceso se despacha recién en el tick siguiente", () => {
+    const planificador = new PlanificadorRoundRobin(2, sinEventos);
+    planificador.encolar(crearListo(1, 5));
+    planificador.encolar(crearListo(2, 5));
+    ejecutar(planificador, 2);
+    expect(planificador.obtenerProcesoEnCpu()).toBeNull();
+    const resultado = planificador.ejecutarTick();
+    expect(resultado.obtenerPid()).toBe(2);
+    expect(planificador.obtenerProcesoEnCpu()?.obtenerPid()).toBe(2);
+  });
+
+  it("al despachar de nuevo reinicia el quantum consumido", () => {
+    const planificador = new PlanificadorRoundRobin(2, sinEventos);
+    planificador.encolar(crearListo(1, 5));
+    planificador.encolar(crearListo(2, 5));
+    ejecutar(planificador, 5);
+    const enCpu = planificador.obtenerProcesoEnCpu();
+    expect(enCpu?.obtenerPid()).toBe(1);
+    expect(enCpu?.obtenerQuantumConsumido()).toBe(1);
+  });
+
+  it("el orden de ejecución con Q = 2 y dos procesos largos es 1, 1, 2, 2, 1", () => {
+    const planificador = new PlanificadorRoundRobin(2, sinEventos);
+    planificador.encolar(crearListo(1, 5));
+    planificador.encolar(crearListo(2, 5));
+    expect(ejecutar(planificador, 5).map((r) => r.obtenerPid())).toEqual([1, 1, 2, 2, 1]);
+  });
+
+  it("un único proceso renueva su quantum y sigue en CPU sin cambio de contexto", () => {
+    const planificador = new PlanificadorRoundRobin(2, sinEventos);
+    planificador.encolar(crearListo(1, 5));
+    const [primero, segundo] = ejecutar(planificador, 2);
+    expect(primero.obtenerResultado()).toBe(ResultadoCpu.CONTINUA);
+    expect(segundo.obtenerResultado()).toBe(ResultadoCpu.RENOVACION_QUANTUM);
+    const enCpu = planificador.obtenerProcesoEnCpu();
+    expect(enCpu?.obtenerPid()).toBe(1);
+    expect(enCpu?.obtenerEstado()).toBe(EstadoProceso.EJECUTANDO);
+    expect(enCpu?.obtenerQuantumConsumido()).toBe(0);
+    expect(planificador.obtenerColaListos()).toHaveLength(0);
+  });
+
+  it("con quantum 1 alterna entre los procesos en cada tick", () => {
+    const planificador = new PlanificadorRoundRobin(1, sinEventos);
+    planificador.encolar(crearListo(1, 5));
+    planificador.encolar(crearListo(2, 5));
+    expect(ejecutar(planificador, 4).map((r) => r.obtenerPid())).toEqual([1, 2, 1, 2]);
+  });
+});
