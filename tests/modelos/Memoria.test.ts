@@ -30,3 +30,45 @@ describe("Memoria - creación (RF01)", () => {
     expect(memoria.obtenerMapa()).toHaveLength(1);
   });
 });
+describe("Memoria - asignar (RF04)", () => {
+  const crear = (total = 100) => new Memoria(total, new PrimerAjuste());
+
+  it("parte el bloque libre cuando sobra espacio", () => {
+    const memoria = crear(100);
+    expect(memoria.asignar(1, 30)).toBe(true);
+    const mapa = memoria.obtenerMapa();
+    expect(mapa).toHaveLength(2);
+    expect(mapa[0].obtenerPidProceso()).toBe(1);
+    expect(mapa[0].obtenerTamano()).toBe(30);
+    expect(mapa[1].estaLibre()).toBe(true);
+    expect(mapa[1].obtenerInicio()).toBe(30);
+    expect(mapa[1].obtenerTamano()).toBe(70);
+    verificarInvariantes(mapa, 100);
+  });
+
+  it("un ajuste exacto ocupa todo el bloque sin generar uno de tamaño cero", () => {
+    const memoria = crear(100);
+    expect(memoria.asignar(1, 100)).toBe(true);
+    const mapa = memoria.obtenerMapa();
+    expect(mapa).toHaveLength(1);
+    expect(mapa[0].obtenerPidProceso()).toBe(1);
+    verificarInvariantes(mapa, 100);
+  });
+
+  it("asigna procesos consecutivos en direcciones contiguas", () => {
+    const memoria = crear(100);
+    memoria.asignar(1, 30);
+    memoria.asignar(2, 20);
+    const mapa = memoria.obtenerMapa();
+    expect(mapa.map((b) => b.obtenerInicio())).toEqual([0, 30, 50]);
+    expect(mapa.map((b) => b.obtenerPidProceso())).toEqual([1, 2, null]);
+    verificarInvariantes(mapa, 100);
+  });
+
+  it("informa qué procesos tienen memoria asignada", () => {
+    const memoria = crear(100);
+    memoria.asignar(1, 30);
+    expect(memoria.tieneMemoriaAsignada(1)).toBe(true);
+    expect(memoria.tieneMemoriaAsignada(2)).toBe(false);
+  });
+});
