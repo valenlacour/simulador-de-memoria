@@ -14,3 +14,8 @@
 - Tareas: clase BloqueMemoria con creación, ocupar/liberar, separar y fusionarCon, cada una con sus tests.
 - Decisiones: el bloque es inmutable (cada operación devuelve un bloque nuevo), así Memoria puede exponer sus bloques sin riesgo. Un método privado `exigir` concentra las validaciones para no encadenar ifs. Un bloque nunca tiene tamaño cero: separar rechaza el tamaño exacto.
 - Obstáculos: ninguno.
+
+## 2026-10-04 (Políticas de asignación)
+- Tareas: interfaz PoliticaAsignacion, clase abstracta PoliticaAsignacionBase y las tres políticas (First, Best y Worst-Fit), con tests por política y una prueba polimórfica.
+- Decisiones: herencia justificada por la relación "es una" y sustitución: cualquier política sirve donde se espera un PoliticaAsignacion. La clase abstracta evita repetir el filtrado y el desempate por menor dirección (cada política solo define `comparar`). Memoria dependerá solo de la interfaz (inversión de dependencias).
+- Obstáculos: noImplicitOverride obliga a escribir `override` también al implementar métodos abstractos.
