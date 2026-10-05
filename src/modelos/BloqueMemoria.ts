@@ -51,4 +51,19 @@ export class BloqueMemoria {
       throw new Error(mensaje);
     }
   }
+
+  /** Indica si el bloque está libre y alcanza para el tamaño pedido. */
+  puedeContener(tamanoRequerido: number): boolean {
+    return this.estaLibre() && this._tamano >= tamanoRequerido;
+  }
+
+  ocupar(pidProceso: number): BloqueMemoria {
+    BloqueMemoria.exigir(this.estaLibre(), "El bloque ya está ocupado");
+    return new BloqueMemoria(this._inicio, this._tamano, pidProceso);
+  }
+
+  liberar(): BloqueMemoria {
+    BloqueMemoria.exigir(!this.estaLibre(), "El bloque ya está libre");
+    return new BloqueMemoria(this._inicio, this._tamano);
+  }
 }
