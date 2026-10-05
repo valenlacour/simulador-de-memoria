@@ -52,3 +52,48 @@ describe("ColaBloqueados - alta y consulta (RF08)", () => {
     expect(cola.obtenerBloqueados()[0].obtenerEstado()).toBe(EstadoProceso.BLOQUEADO);
   });
 });
+describe("ColaBloqueados - avanzar (RF06 fase 2, RF08)", () => {
+  it("sin bloqueados no libera a nadie", () => {
+    expect(new ColaBloqueados().avanzar()).toEqual([]);
+  });
+
+  it("reduce el temporizador y libera al proceso cuando llega a cero", () => {
+    const cola = new ColaBloqueados();
+    const proceso = crearBloqueado(1, 2);
+    cola.agregar(proceso);
+    expect(cola.avanzar()).toEqual([]);
+    expect(proceso.obtenerBloqueoRestante()).toBe(1);
+    expect(proceso.obtenerEstado()).toBe(EstadoProceso.BLOQUEADO);
+    expect(cola.avanzar()).toEqual([1]);
+    expect(proceso.obtenerEstado()).toBe(EstadoProceso.LISTO);
+    expect(cola.contiene(1)).toBe(false);
+    expect(cola.obtenerBloqueados()).toHaveLength(0);
+  });
+
+  it("un bloqueo de 1 tick vuelve a Listo en la primera actualización", () => {
+    const cola = new ColaBloqueados();
+    const proceso = crearBloqueado(1, 1);
+    cola.agregar(proceso);
+    expect(cola.avanzar()).toEqual([1]);
+    expect(proceso.obtenerEstado()).toBe(EstadoProceso.LISTO);
+  });
+
+  it("libera varios procesos en el orden en que se bloquearon y deja a los demás", () => {
+    const cola = new ColaBloqueados();
+    cola.agregar(crearBloqueado(2, 1));
+    cola.agregar(crearBloqueado(3, 3));
+    cola.agregar(crearBloqueado(1, 1));
+    expect(cola.avanzar()).toEqual([2, 1]);
+    expect(cola.obtenerBloqueados().map((v) => v.obtenerPid())).toEqual([3]);
+    expect(cola.obtenerBloqueados()[0].obtenerBloqueoRestante()).toBe(2);
+  });
+
+  it("durante el bloqueo el proceso no consume CPU", () => {
+    const cola = new ColaBloqueados();
+    const proceso = crearBloqueado(1, 3);
+    cola.agregar(proceso);
+    cola.avanzar();
+    cola.avanzar();
+    expect(proceso.obtenerCpuRestante()).toBe(4);
+  });
+});
