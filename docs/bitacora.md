@@ -34,3 +34,8 @@
 - Tareas: EventoES, AgendaES, ColaBloqueados con su interfaz GestorBloqueados, MetricasSimulacion y RecolectorMetricas con su interfaz ColectorMetricas.
 - Decisiones: AgendaES implementa ProveedorEventosES, el contrato que ya usa el planificador. Valida los eventos al registrarlos: datos enteros positivos (EventoES) y rechazo de los que nunca se dispararían (punto >= CPU total del proceso) o duplicados. ColaBloqueados devuelve solo pids, no objetos internos. Las métricas se recalculan al terminar cada tick y se entregan como objeto inmutable; los cambios de contexto cuentan solo expulsión por quantum con otros Listos y bloqueo por E/S (convención del RF09).
 - Obstáculos: ninguno.
+
+## 2026-10-04 (Simulador)
+- Tareas: ConfiguracionSimulador, FabricaPoliticas y Simulador (registro de procesos, admisión, tick de cuatro fases, E/S y consultas de solo lectura), con pruebas de colaboración e invariantes del sistema.
+- Decisiones: el Simulador solo coordina: la lógica vive en Memoria, el planificador, la cola de bloqueados y las métricas, que usa a través de interfaces. Una configuración inválida impide crear el simulador (RF01). Lo que ocurre en la CPU se traduce en acciones con una tabla Record<ResultadoCpu, ...> en lugar de condicionales. Hacia afuera solo salen vistas inmutables.
+- Obstáculos: algunos tests míos tenían aserciones sin valor o casos mal planteados; los corregí antes de commitear.
