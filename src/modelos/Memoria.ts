@@ -87,5 +87,21 @@ export class Memoria {
       throw new Error(`El proceso ${pid} no tiene memoria asignada`);
     }
     this._bloques[indice] = this._bloques[indice].liberar();
+    this.fusionarConDerecha(indice);
+    this.fusionarConIzquierda(indice);
+  }
+
+  private fusionarConDerecha(indice: number): void {
+    const siguiente: BloqueMemoria | undefined = this._bloques[indice + 1];
+    if (siguiente !== undefined && siguiente.estaLibre()) {
+      this._bloques.splice(indice, 2, this._bloques[indice].fusionarCon(siguiente));
+    }
+  }
+
+  private fusionarConIzquierda(indice: number): void {
+    const anterior: BloqueMemoria | undefined = this._bloques[indice - 1];
+    if (anterior !== undefined && anterior.estaLibre()) {
+      this._bloques.splice(indice - 1, 2, anterior.fusionarCon(this._bloques[indice]));
+    }
   }
 }

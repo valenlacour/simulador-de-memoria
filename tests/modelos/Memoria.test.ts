@@ -156,3 +156,77 @@ describe("Memoria - liberar (RF05)", () => {
     expect(memoria.obtenerMapa()).toEqual(antes);
   });
 });
+
+describe("Memoria - coalescencia (RF05)", () => {
+  // Memoria de 100 KB con p1, p2 y p3 de 30 KB y 10 KB libres al final.
+  const crearConTresProcesos = () => {
+    const memoria = new Memoria(100, new PrimerAjuste());
+    memoria.asignar(1, 30);
+    memoria.asignar(2, 30);
+    memoria.asignar(3, 30);
+    return memoria;
+  };
+
+  it("fusiona con el vecino derecho libre", () => {
+    const memoria = crearConTresProcesos();
+    memoria.liberar(3);
+    const mapa = memoria.obtenerMapa();
+    expect(mapa).toHaveLength(3);
+    expect(mapa[2].estaLibre()).toBe(true);
+    expect(mapa[2].obtenerInicio()).toBe(60);
+    expect(mapa[2].obtenerTamano()).toBe(40);
+    verificarInvariantes(mapa, 100);
+  });
+
+  it("fusiona con el vecino izquierdo libre", () => {
+    const memoria = crearConTresProcesos();
+    memoria.liberar(1);
+    memoria.liberar(2);
+    const mapa = memoria.obtenerMapa();
+    expect(mapa).toHaveLength(3);
+    expect(mapa[0].obtenerInicio()).toBe(0);
+    expect(mapa[0].obtenerTamano()).toBe(60);
+    expect(mapa[1].obtenerPidProceso()).toBe(3);
+    verificarInvariantes(mapa, 100);
+  });
+
+  it("fusiona con ambos vecinos a la vez", () => {
+    const memoria = crearConTresProcesos();
+    memoria.liberar(1);
+    memoria.liberar(3);
+    memoria.liberar(2);
+    const mapa = memoria.obtenerMapa();
+    expect(mapa).toHaveLength(1);
+    expect(mapa[0].estaLibre()).toBe(true);
+    expect(mapa[0].obtenerTamano()).toBe(100);
+    verificarInvariantes(mapa, 100);
+  });
+
+  it("no mueve los bloques ocupados: la coalescencia no compacta", () => {
+    const memoria = crearConTresProcesos();
+    memoria.liberar(1);
+    memoria.liberar(2);
+    const bloqueDeP3 = memoria.obtenerMapa().find((b) => b.obtenerPidProceso() === 3);
+    expect(bloqueDeP3?.obtenerInicio()).toBe(60);
+    expect(bloqueDeP3?.obtenerTamano()).toBe(30);
+  });
+
+  it.each([
+    [1, 2, 3],
+    [1, 3, 2],
+    [2, 1, 3],
+    [2, 3, 1],
+    [3, 1, 2],
+    [3, 2, 1],
+  ])("al liberar todos (orden %d, %d, %d) queda un único bloque libre del tamaño total", (a, b, c) => {
+    const memoria = crearConTresProcesos();
+    [a, b, c].forEach((pid) => {
+      memoria.liberar(pid);
+      verificarInvariantes(memoria.obtenerMapa(), 100);
+    });
+    const mapa = memoria.obtenerMapa();
+    expect(mapa).toHaveLength(1);
+    expect(mapa[0].estaLibre()).toBe(true);
+    expect(mapa[0].obtenerTamano()).toBe(100);
+  });
+});
