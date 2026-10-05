@@ -19,3 +19,8 @@
 - Tareas: interfaz PoliticaAsignacion, clase abstracta PoliticaAsignacionBase y las tres políticas (First, Best y Worst-Fit), con tests por política y una prueba polimórfica.
 - Decisiones: herencia justificada por la relación "es una" y sustitución: cualquier política sirve donde se espera un PoliticaAsignacion. La clase abstracta evita repetir el filtrado y el desempate por menor dirección (cada política solo define `comparar`). Memoria dependerá solo de la interfaz (inversión de dependencias).
 - Obstáculos: noImplicitOverride obliga a escribir `override` también al implementar métodos abstractos.
+
+## 2026-10-04 (Memoria)
+- Tareas: clase Memoria con asignación contigua (partición y ajuste exacto), liberación, coalescencia a izquierda, derecha y ambos lados, métricas de memoria e interfaz GestorMemoria. Probada con las tres políticas.
+- Decisiones: Memoria depende solo de la interfaz PoliticaAsignacion, que recibe por constructor. El mapa se expone como copia de solo lectura y los bloques son inmutables (doble encapsulamiento). Un helper de tests verifica las invariantes (continuidad, tamaño total, sin libres adyacentes) después de cada operación.
+- Obstáculos: ninguno.
