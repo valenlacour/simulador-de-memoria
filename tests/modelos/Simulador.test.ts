@@ -230,3 +230,119 @@ describe("Simulador - avance del reloj (RF06)", () => {
     expect(simulador.obtenerProceso(1).obtenerEstado()).toBe(EstadoProceso.EJECUTANDO);
   });
 });
+
+// Ejecuta un tick y devuelve el pid del proceso que consumió CPU (null si la CPU quedó libre).
+const ejecutarTick = (simulador: Simulador): number | null => {
+  const antes = simulador.obtenerProcesos().map((v) => v.obtenerCpuRestante());
+  simulador.avanzarTick();
+  const despues = simulador.obtenerProcesos();
+  const indice = despues.findIndex((v, i) => v.obtenerCpuRestante() < antes[i]);
+  return indice === -1 ? null : despues[indice].obtenerPid();
+};
+
+const consumoTotal = (simulador: Simulador): number =>
+  simulador.obtenerProcesos().reduce((suma, v) => suma + (v.obtenerCpuTotal() - v.obtenerCpuRestante()), 0);
+
+describe("Simulador - orden de fases y Round-Robin (RF06, RF07, RF09)", () => {
+  it("Q = 2, P1 con CPU 3 y P2 con CPU 2: ejecutan P1, P1, P2, P2, P1 con un cambio de contexto", () => {
+    const simulador = crearSimulador(1024, 2);
+    simulador.registrarProceso(1, 100, 3);
+    simulador.registrarProceso(2, 100, 2);
+    const orden = [1, 2, 3, 4, 5].map(() => ejecutarTick(simulador));
+    expect(orden).toEqual([1, 1, 2, 2, 1]);
+    const metricas = simulador.obtenerMetricas();
+    expect(metricas.obtenerCambiosContexto()).toBe(1);
+    expect(metricas.obtenerUtilizacionCpu()).toBe(100);
+    expect(simulador.obtenerTerminados().map((v) => v.obtenerPid())).toEqual([2, 1]);
+  });
+
+  it("al terminar todos los procesos queda un único bloque libre del tamaño total", () => {
+    const simulador = crearSimulador(1024, 2);
+    simulador.registrarProceso(1, 100, 3);
+    simulador.registrarProceso(2, 300, 2);
+    [1, 2, 3, 4, 5].forEach(() => simulador.avanzarTick());
+    const mapa = simulador.obtenerMapaMemoria();
+    expect(mapa).toHaveLength(1);
+    expect(mapa[0].estaLibre()).toBe(true);
+    expect(mapa[0].obtenerTamano()).toBe(1024);
+    expect(simulador.obtenerMetricas().obtenerOcupacionMemoria()).toBe(0);
+  });
+
+  it("un único proceso renueva su quantum sin cambio de contexto", () => {
+    const simulador = crearSimulador(100, 2);
+    simulador.registrarProceso(1, 10, 6);
+    [1, 2].forEach(() => simulador.avanzarTick());
+    const enCpu = simulador.obtenerProcesoEnCpu();
+    expect(enCpu?.obtenerPid()).toBe(1);
+    expect(enCpu?.obtenerQuantumConsumido()).toBe(0);
+    expect(simulador.obtenerMetricas().obtenerCambiosContexto()).toBe(0);
+    [3, 4].forEach(() => simulador.avanzarTick());
+    expect(simulador.obtenerMetricas().obtenerCambiosContexto()).toBe(0);
+    expect(simulador.obtenerProceso(1).obtenerCpuRestante()).toBe(2);
+  });
+
+  it("finalizar en el límite del quantum no reencola y no cuenta cambio de contexto", () => {
+    const simulador = crearSimulador(100, 2);
+    simulador.registrarProceso(1, 10, 2);
+    simulador.registrarProceso(2, 10, 2);
+    [1, 2].forEach(() => simulador.avanzarTick());
+    expect(simulador.obtenerProceso(1).obtenerEstado()).toBe(EstadoProceso.TERMINADO);
+    expect(simulador.obtenerColaListos().map((v) => v.obtenerPid())).toEqual([2]);
+    expect(simulador.obtenerProcesoEnCpu()).toBeNull();
+    expect(simulador.obtenerMetricas().obtenerCambiosContexto()).toBe(0);
+    expect(ejecutarTick(simulador)).toBe(2);
+  });
+
+  it("otro proceso se ejecuta recién en el tick siguiente al que termina uno", () => {
+    const simulador = crearSimulador(100, 5);
+    simulador.registrarProceso(1, 10, 1);
+    simulador.registrarProceso(2, 10, 3);
+    expect(ejecutarTick(simulador)).toBe(1);
+    expect(simulador.obtenerProceso(2).obtenerCpuRestante()).toBe(3);
+    expect(ejecutarTick(simulador)).toBe(2);
+  });
+
+  it("como máximo un proceso consume una unidad de CPU por tick", () => {
+    const simulador = crearSimulador(100, 2);
+    [[1, 10, 4], [2, 10, 3], [3, 10, 5]].forEach(([pid, memoria, cpu]) => {
+      simulador.registrarProceso(pid, memoria, cpu);
+    });
+    for (let i = 0; i < 14; i++) {
+      const antes = consumoTotal(simulador);
+      simulador.avanzarTick();
+      expect(consumoTotal(simulador) - antes).toBeLessThanOrEqual(1);
+    }
+    expect(consumoTotal(simulador)).toBe(12);
+  });
+
+  it("la admisión ocurre antes del despacho: un proceso se ejecuta en el mismo tick en que se admite", () => {
+    const simulador = crearSimulador(100, 2);
+    simulador.registrarProceso(1, 10, 3);
+    expect(ejecutarTick(simulador)).toBe(1);
+    expect(simulador.obtenerProceso(1).obtenerEstado()).toBe(EstadoProceso.EJECUTANDO);
+  });
+
+  it("una liberación al final del tick habilita la admisión recién en el tick siguiente", () => {
+    const simulador = crearSimulador(100, 2);
+    simulador.registrarProceso(1, 60, 1);
+    simulador.registrarProceso(2, 60, 3);
+    simulador.avanzarTick();
+    expect(simulador.obtenerProceso(1).obtenerEstado()).toBe(EstadoProceso.TERMINADO);
+    expect(simulador.obtenerMapaMemoria()[0].estaLibre()).toBe(true);
+    expect(simulador.obtenerProceso(2).obtenerEstado()).toBe(EstadoProceso.ESPERANDO_MEMORIA);
+    expect(ejecutarTick(simulador)).toBe(2);
+  });
+
+  it("las métricas se recalculan al finalizar cada tick", () => {
+    const simulador = crearSimulador(1000, 2);
+    simulador.registrarProceso(1, 250, 2);
+    expect(simulador.obtenerMetricas().obtenerOcupacionMemoria()).toBe(0);
+    simulador.avanzarTick();
+    expect(simulador.obtenerMetricas().obtenerOcupacionMemoria()).toBe(25);
+    expect(simulador.obtenerMetricas().obtenerUtilizacionCpu()).toBe(100);
+    simulador.avanzarTick();
+    expect(simulador.obtenerMetricas().obtenerOcupacionMemoria()).toBe(0);
+    simulador.avanzarTick();
+    expect(simulador.obtenerMetricas().obtenerUtilizacionCpu()).toBeCloseTo((100 * 2) / 3);
+  });
+});
