@@ -1,13 +1,15 @@
+import type { Planificador } from "../interfaces/Planificador";
 import type { ProveedorEventosES } from "../interfaces/ProveedorEventosES";
 import { EstadoProceso } from "./EstadoProceso";
 import type { Proceso } from "./Proceso";
+import { ResultadoCpu, ResultadoEjecucion } from "./ResultadoEjecucion";
 import type { VistaProceso } from "./VistaProceso";
 
 /**
  * Planificador Round-Robin: administra la CPU y la cola FIFO de procesos Listos.
  * Solo guarda procesos reales internamente; hacia afuera devuelve vistas de solo lectura.
  */
-export class PlanificadorRoundRobin {
+export class PlanificadorRoundRobin implements Planificador {
   private readonly _quantum: number;
   private readonly _eventos: ProveedorEventosES;
   private readonly _colaListos: Proceso[] = [];
@@ -47,5 +49,35 @@ export class PlanificadorRoundRobin {
 
   private estaEnLaCola(pid: number): boolean {
     return this._colaListos.some((proceso) => proceso.obtenerPid() === pid);
+  }
+
+  /**
+   * Avanza la CPU un tick: si está libre despacha al primero de la cola,
+   * ejecuta una unidad y resuelve lo ocurrido. Como máximo un proceso consume CPU.
+   */
+  ejecutarTick(): ResultadoEjecucion {
+    this.despacharSiLibre();
+    if (this._procesoEnCpu === null) {
+      return new ResultadoEjecucion(ResultadoCpu.SIN_PROCESO, null);
+    }
+    const proceso = this._procesoEnCpu;
+    proceso.ejecutarTick();
+    return this.resolverTick(proceso);
+  }
+
+  private despacharSiLibre(): void {
+    if (this._procesoEnCpu === null && this._colaListos.length > 0) {
+      const siguiente = this._colaListos.shift() as Proceso;
+      siguiente.despachar();
+      this._procesoEnCpu = siguiente;
+    }
+  }
+
+  private resolverTick(proceso: Proceso): ResultadoEjecucion {
+    return this.continuar(proceso);
+  }
+
+  private continuar(proceso: Proceso): ResultadoEjecucion {
+    return new ResultadoEjecucion(ResultadoCpu.CONTINUA, proceso.obtenerPid());
   }
 }
