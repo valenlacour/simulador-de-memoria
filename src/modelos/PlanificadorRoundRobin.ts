@@ -74,6 +74,9 @@ export class PlanificadorRoundRobin implements Planificador {
   }
 
   private resolverTick(proceso: Proceso): ResultadoEjecucion {
+    if (proceso.obtenerCpuRestante() === 0) {
+      return this.finalizar(proceso);
+    }
     return this.resolverQuantum(proceso);
   }
 
@@ -99,5 +102,12 @@ export class PlanificadorRoundRobin implements Planificador {
   private renovarQuantum(proceso: Proceso): ResultadoEjecucion {
     proceso.renovarQuantum();
     return new ResultadoEjecucion(ResultadoCpu.RENOVACION_QUANTUM, proceso.obtenerPid());
+  }
+
+  /** La finalización libera la CPU en ese tick; otro proceso corre recién en el siguiente. */
+  private finalizar(proceso: Proceso): ResultadoEjecucion {
+    proceso.terminar();
+    this._procesoEnCpu = null;
+    return new ResultadoEjecucion(ResultadoCpu.FINALIZO, proceso.obtenerPid());
   }
 }

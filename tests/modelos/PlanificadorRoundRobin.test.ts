@@ -168,3 +168,63 @@ describe("PlanificadorRoundRobin - quantum (RF07)", () => {
     expect(ejecutar(planificador, 4).map((r) => r.obtenerPid())).toEqual([1, 2, 1, 2]);
   });
 });
+
+describe("PlanificadorRoundRobin - finalización (RF07)", () => {
+  const ejecutar = (planificador: PlanificadorRoundRobin, ticks: number) =>
+    Array.from({ length: ticks }, () => planificador.ejecutarTick());
+
+  it("Q = 2, P1 con CPU 3 y P2 con CPU 2: ejecutan P1, P1, P2, P2, P1 con una sola expulsión", () => {
+    const planificador = new PlanificadorRoundRobin(2, sinEventos);
+    planificador.encolar(crearListo(1, 3));
+    planificador.encolar(crearListo(2, 2));
+    const resultados = ejecutar(planificador, 5);
+    expect(resultados.map((r) => r.obtenerPid())).toEqual([1, 1, 2, 2, 1]);
+    expect(resultados.map((r) => r.obtenerResultado())).toEqual([
+      ResultadoCpu.CONTINUA,
+      ResultadoCpu.EXPULSION,
+      ResultadoCpu.CONTINUA,
+      ResultadoCpu.FINALIZO,
+      ResultadoCpu.FINALIZO,
+    ]);
+    expect(resultados.filter((r) => r.obtenerResultado() === ResultadoCpu.EXPULSION)).toHaveLength(1);
+  });
+
+  it("finalizar libera la CPU y el siguiente proceso corre recién en el tick siguiente", () => {
+    const planificador = new PlanificadorRoundRobin(5, sinEventos);
+    planificador.encolar(crearListo(1, 1));
+    planificador.encolar(crearListo(2, 3));
+    const resultado = planificador.ejecutarTick();
+    expect(resultado.obtenerResultado()).toBe(ResultadoCpu.FINALIZO);
+    expect(planificador.obtenerProcesoEnCpu()).toBeNull();
+    expect(planificador.obtenerColaListos().map((v) => v.obtenerPid())).toEqual([2]);
+    expect(planificador.ejecutarTick().obtenerPid()).toBe(2);
+  });
+
+  it("finalizar en el límite del quantum no reencola al proceso", () => {
+    const planificador = new PlanificadorRoundRobin(2, sinEventos);
+    planificador.encolar(crearListo(1, 2));
+    planificador.encolar(crearListo(2, 3));
+    const [, segundo] = ejecutar(planificador, 2);
+    expect(segundo.obtenerResultado()).toBe(ResultadoCpu.FINALIZO);
+    expect(planificador.obtenerColaListos().map((v) => v.obtenerPid())).toEqual([2]);
+  });
+
+  it("un único proceso que termina en el límite del quantum no se renueva", () => {
+    const planificador = new PlanificadorRoundRobin(2, sinEventos);
+    planificador.encolar(crearListo(1, 2));
+    const resultados = ejecutar(planificador, 3);
+    expect(resultados[1].obtenerResultado()).toBe(ResultadoCpu.FINALIZO);
+    expect(resultados[2].obtenerResultado()).toBe(ResultadoCpu.SIN_PROCESO);
+  });
+
+  it("un proceso TERMINADO no vuelve a la cola ni a la CPU", () => {
+    const planificador = new PlanificadorRoundRobin(2, sinEventos);
+    const proceso = crearListo(1, 1);
+    planificador.encolar(proceso);
+    planificador.ejecutarTick();
+    expect(proceso.obtenerEstado()).toBe(EstadoProceso.TERMINADO);
+    expect(planificador.obtenerColaListos()).toHaveLength(0);
+    expect(planificador.obtenerProcesoEnCpu()).toBeNull();
+    expect(() => planificador.encolar(proceso)).toThrow();
+  });
+});
