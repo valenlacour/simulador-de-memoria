@@ -117,3 +117,42 @@ describe("Memoria - asignar: fallos y validaciones (RF04)", () => {
     expect(memoria.obtenerMapa()).toHaveLength(1);
   });
 });
+
+describe("Memoria - liberar (RF05)", () => {
+  it("deja el bloque libre y conserva el tamaño total", () => {
+    const memoria = new Memoria(100, new PrimerAjuste());
+    memoria.asignar(1, 30);
+    memoria.asignar(2, 30);
+    memoria.liberar(1);
+    const mapa = memoria.obtenerMapa();
+    expect(mapa[0].estaLibre()).toBe(true);
+    expect(mapa[0].obtenerTamano()).toBe(30);
+    expect(memoria.tieneMemoriaAsignada(1)).toBe(false);
+    verificarInvariantes(mapa, 100);
+  });
+
+  it("rechaza liberar un proceso que no tiene memoria", () => {
+    const memoria = new Memoria(100, new PrimerAjuste());
+    expect(() => memoria.liberar(9)).toThrow();
+  });
+
+  it("la memoria liberada permite admitir a un proceso que no entraba", () => {
+    const memoria = new Memoria(100, new PrimerAjuste());
+    memoria.asignar(1, 60);
+    expect(memoria.asignar(2, 50)).toBe(false);
+    memoria.liberar(1);
+    expect(memoria.asignar(2, 50)).toBe(true);
+    expect(memoria.tieneMemoriaAsignada(2)).toBe(true);
+  });
+
+  it("falla aunque la suma de memoria libre alcance, si no hay un hueco contiguo", () => {
+    const memoria = new Memoria(100, new PrimerAjuste());
+    memoria.asignar(1, 30);
+    memoria.asignar(2, 30);
+    memoria.asignar(3, 30);
+    memoria.liberar(1);
+    const antes = memoria.obtenerMapa();
+    expect(memoria.asignar(4, 35)).toBe(false);
+    expect(memoria.obtenerMapa()).toEqual(antes);
+  });
+});

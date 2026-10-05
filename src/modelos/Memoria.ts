@@ -79,4 +79,13 @@ export class Memoria {
     const [primero, resto] = bloque.separar(tamano);
     return [primero.ocupar(pid), resto];
   }
+
+  /** Libera el bloque del proceso. Falla si el proceso no tiene memoria asignada. */
+  liberar(pid: number): void {
+    const indice = this.buscarIndice(pid);
+    if (indice === -1) {
+      throw new Error(`El proceso ${pid} no tiene memoria asignada`);
+    }
+    this._bloques[indice] = this._bloques[indice].liberar();
+  }
 }
