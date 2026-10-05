@@ -40,8 +40,7 @@
 - Decisiones: el Simulador solo coordina: la lógica vive en Memoria, el planificador, la cola de bloqueados y las métricas, que usa a través de interfaces. Una configuración inválida impide crear el simulador (RF01). Lo que ocurre en la CPU se traduce en acciones con una tabla Record<ResultadoCpu, ...> en lugar de condicionales. Hacia afuera solo salen vistas inmutables.
 - Obstáculos: algunos tests míos tenían aserciones sin valor o casos mal planteados; los corregí antes de commitear.
 
-2026-10-05 (Casos del Anexo I)
-
-    Tareas: un archivo de pruebas con los 8 casos mínimos del Anexo I, probados de punta a punta a través del Simulador (26 tests). Quedan 302 tests en verde y cobertura del 100%.
-    Decisiones: cada describe corresponde a una fila de la tabla del Anexo I, así la matriz RF > clase > test del informe los puede señalar directamente. Para saber qué proceso ejecutó en cada tick comparo la CPU restante antes y después, sin agregar métodos al Simulador solo para los tests.
-    Obstáculos: armar mapas con huecos en posiciones exactas obliga a usar quantum 1 y CPU distintas para controlar en qué tick termina cada proceso.
+## 2026-10-05 (Casos del Anexo I)
+- Tareas: un archivo de pruebas con los 8 casos mínimos del Anexo I, probados de punta a punta a través del Simulador (26 tests). Quedan 302 tests en verde y cobertura del 100%.
+- Decisiones: cada describe corresponde a una fila de la tabla del Anexo I, así la matriz RF > clase > test del informe los puede señalar directamente. Para saber qué proceso ejecutó en cada tick comparo la CPU restante antes y después, sin agregar métodos al Simulador solo para los tests.
+- Obstáculos: armar mapas con huecos en posiciones exactas obliga a usar quantum 1 y CPU distintas para controlar en qué tick termina cada proceso.
