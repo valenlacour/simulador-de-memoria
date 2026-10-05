@@ -10,7 +10,7 @@ import type { ConfiguracionSimulador } from "./ConfiguracionSimulador";
 import { Memoria } from "./Memoria";
 import type { MetricasSimulacion } from "./MetricasSimulacion";
 import { PlanificadorRoundRobin } from "./PlanificadorRoundRobin";
-import type { Proceso } from "./Proceso";
+import { Proceso } from "./Proceso";
 import { RecolectorMetricas } from "./RecolectorMetricas";
 import type { VistaProceso } from "./VistaProceso";
 
@@ -73,5 +73,37 @@ export class Simulador {
 
   obtenerBloqueados(): readonly VistaProceso[] {
     return this._bloqueados.obtenerBloqueados();
+  }
+
+  /**
+   * Registra un proceso nuevo (estado NUEVO). Rechaza datos inválidos, PID duplicados
+   * y pedidos mayores a la memoria total, sin dejar estados parciales.
+   */
+  registrarProceso(pid: number, memoriaRequerida: number, cpuTotal: number): void {
+    const proceso = new Proceso(pid, memoriaRequerida, cpuTotal);
+    if (this._procesos.has(pid)) {
+      throw new Error(`Ya existe un proceso con PID ${pid}`);
+    }
+    if (memoriaRequerida > this._configuracion.obtenerMemoriaTotal()) {
+      throw new Error(`El proceso ${pid} pide ${memoriaRequerida} KB y la memoria total es menor`);
+    }
+    this._procesos.set(pid, proceso);
+  }
+
+  obtenerProceso(pid: number): VistaProceso {
+    return this.buscar(pid).crearVista();
+  }
+
+  /** Vistas de todos los procesos, en orden de registro. */
+  obtenerProcesos(): readonly VistaProceso[] {
+    return [...this._procesos.values()].map((proceso) => proceso.crearVista());
+  }
+
+  private buscar(pid: number): Proceso {
+    const proceso = this._procesos.get(pid);
+    if (proceso === undefined) {
+      throw new Error(`No existe el proceso ${pid}`);
+    }
+    return proceso;
   }
 }

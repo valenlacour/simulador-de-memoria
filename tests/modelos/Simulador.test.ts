@@ -54,3 +54,66 @@ describe("Simulador - configuración e inicio (RF01)", () => {
     expect(() => new Simulador(new ConfiguracionSimulador(1024, -1))).toThrow();
   });
 });
+describe("Simulador - registro y consulta de procesos (RF02)", () => {
+  it("registra procesos NUEVOS con CPU restante igual a la total, en orden de registro", () => {
+    const simulador = crearSimulador(100, 2);
+    simulador.registrarProceso(2, 30, 4);
+    simulador.registrarProceso(1, 20, 3);
+    expect(simulador.obtenerProcesos().map((v) => v.obtenerPid())).toEqual([2, 1]);
+    const primero = simulador.obtenerProceso(2);
+    expect(primero.obtenerEstado()).toBe(EstadoProceso.NUEVO);
+    expect(primero.obtenerMemoriaRequerida()).toBe(30);
+    expect(primero.obtenerCpuTotal()).toBe(4);
+    expect(primero.obtenerCpuRestante()).toBe(4);
+    expect(primero.obtenerQuantumConsumido()).toBe(0);
+    expect(primero.obtenerBloqueoRestante()).toBe(0);
+  });
+
+  it("registrar no asigna memoria ni cambia el reloj", () => {
+    const simulador = crearSimulador(100, 2);
+    simulador.registrarProceso(1, 30, 4);
+    expect(simulador.obtenerTickActual()).toBe(0);
+    expect(simulador.obtenerMapaMemoria()).toHaveLength(1);
+    expect(simulador.obtenerMapaMemoria()[0].estaLibre()).toBe(true);
+  });
+
+  it.each([
+    [0, 10, 1],
+    [-1, 10, 1],
+    [1, 0, 1],
+    [1, 10, -2],
+    [1.5, 10, 1],
+    [1, 10, 2.5],
+  ])("rechaza datos inválidos (%d, %d, %d)", (pid, memoria, cpu) => {
+    const simulador = crearSimulador(100, 2);
+    expect(() => simulador.registrarProceso(pid, memoria, cpu)).toThrow();
+    expect(simulador.obtenerProcesos()).toHaveLength(0);
+  });
+
+  it("rechaza un PID duplicado sin alterar el proceso original", () => {
+    const simulador = crearSimulador(100, 2);
+    simulador.registrarProceso(1, 10, 3);
+    expect(() => simulador.registrarProceso(1, 20, 5)).toThrow();
+    expect(simulador.obtenerProcesos()).toHaveLength(1);
+    expect(simulador.obtenerProceso(1).obtenerMemoriaRequerida()).toBe(10);
+  });
+
+  it("rechaza un pedido mayor a la memoria total y acepta uno igual", () => {
+    const simulador = crearSimulador(100, 2);
+    expect(() => simulador.registrarProceso(1, 101, 3)).toThrow();
+    expect(simulador.obtenerProcesos()).toHaveLength(0);
+    simulador.registrarProceso(2, 100, 3);
+    expect(simulador.obtenerProcesos()).toHaveLength(1);
+  });
+
+  it("consultar un proceso inexistente falla", () => {
+    expect(() => crearSimulador(100, 2).obtenerProceso(9)).toThrow();
+  });
+
+  it("la lista de procesos es una copia: modificarla no altera el simulador", () => {
+    const simulador = crearSimulador(100, 2);
+    simulador.registrarProceso(1, 10, 3);
+    (simulador.obtenerProcesos() as VistaProceso[]).pop();
+    expect(simulador.obtenerProcesos()).toHaveLength(1);
+  });
+});
