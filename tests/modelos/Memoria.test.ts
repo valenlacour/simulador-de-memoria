@@ -230,3 +230,46 @@ describe("Memoria - coalescencia (RF05)", () => {
     expect(mapa[0].obtenerTamano()).toBe(100);
   });
 });
+
+describe("Memoria - métricas (RF09)", () => {
+  it("memoria vacía (tick 0): todo libre y sin fragmentación", () => {
+    const memoria = new Memoria(1024, new PrimerAjuste());
+    expect(memoria.obtenerMemoriaOcupada()).toBe(0);
+    expect(memoria.obtenerMemoriaLibreTotal()).toBe(1024);
+    expect(memoria.obtenerMayorBloqueLibre()).toBe(1024);
+    expect(memoria.obtenerOcupacion()).toBe(0);
+    expect(memoria.obtenerFragmentacionExterna()).toBe(0);
+  });
+
+  it("memoria llena: sin bloques libres, mayor bloque 0 y fragmentación 0", () => {
+    const memoria = new Memoria(1000, new PrimerAjuste());
+    memoria.asignar(1, 1000);
+    expect(memoria.obtenerMemoriaLibreTotal()).toBe(0);
+    expect(memoria.obtenerMayorBloqueLibre()).toBe(0);
+    expect(memoria.obtenerOcupacion()).toBe(100);
+    expect(memoria.obtenerFragmentacionExterna()).toBe(0);
+  });
+
+  it("ocupación parcial: 250 de 1000 KB es 25%", () => {
+    const memoria = new Memoria(1000, new PrimerAjuste());
+    memoria.asignar(1, 250);
+    expect(memoria.obtenerMemoriaOcupada()).toBe(250);
+    expect(memoria.obtenerOcupacion()).toBe(25);
+    expect(memoria.obtenerFragmentacionExterna()).toBe(0);
+  });
+
+  it("huecos no contiguos de 100 y 300 KB: libre 400, mayor hueco 300 y fragmentación 25%", () => {
+    const memoria = new Memoria(1000, new PrimerAjuste());
+    memoria.asignar(1, 100);
+    memoria.asignar(2, 100);
+    memoria.asignar(3, 300);
+    memoria.asignar(4, 100);
+    memoria.asignar(5, 400);
+    memoria.liberar(1);
+    memoria.liberar(3);
+    expect(memoria.obtenerMemoriaLibreTotal()).toBe(400);
+    expect(memoria.obtenerMayorBloqueLibre()).toBe(300);
+    expect(memoria.obtenerFragmentacionExterna()).toBe(25);
+    expect(memoria.obtenerOcupacion()).toBe(60);
+  });
+});

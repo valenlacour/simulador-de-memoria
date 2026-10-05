@@ -104,4 +104,33 @@ export class Memoria {
       this._bloques.splice(indice - 1, 2, anterior.fusionarCon(this._bloques[indice]));
     }
   }
+
+  obtenerMemoriaLibreTotal(): number {
+    return this.sumarTamanos(this._bloques.filter((bloque) => bloque.estaLibre()));
+  }
+
+  obtenerMemoriaOcupada(): number {
+    return this._memoriaTotal - this.obtenerMemoriaLibreTotal();
+  }
+
+  /** Tamaño del mayor bloque libre; 0 si no hay ninguno. */
+  obtenerMayorBloqueLibre(): number {
+    const libres = this._bloques.filter((bloque) => bloque.estaLibre());
+    return Math.max(0, ...libres.map((bloque) => bloque.obtenerTamano()));
+  }
+
+  /** 100 × memoria ocupada / memoria total. */
+  obtenerOcupacion(): number {
+    return (100 * this.obtenerMemoriaOcupada()) / this._memoriaTotal;
+  }
+
+  /** 100 × (1 − mayor bloque libre / memoria libre total); 0 si no hay memoria libre. */
+  obtenerFragmentacionExterna(): number {
+    const libre = this.obtenerMemoriaLibreTotal();
+    return libre === 0 ? 0 : 100 * (1 - this.obtenerMayorBloqueLibre() / libre);
+  }
+
+  private sumarTamanos(bloques: BloqueMemoria[]): number {
+    return bloques.reduce((suma, bloque) => suma + bloque.obtenerTamano(), 0);
+  }
 }
