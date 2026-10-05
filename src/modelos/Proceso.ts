@@ -1,4 +1,5 @@
 import { EstadoProceso } from "./EstadoProceso";
+import { VistaProceso } from "./VistaProceso";
 
 export class Proceso {
   private readonly _pid: number;
@@ -119,5 +120,18 @@ export class Proceso {
       throw new Error("El proceso todavía tiene CPU pendiente");
     }
     this.transicionar([EstadoProceso.EJECUTANDO], EstadoProceso.TERMINADO);
+  }
+
+  /** Copia de solo lectura del estado actual; no expone el proceso ni permite modificarlo. */
+  crearVista(): VistaProceso {
+    return new VistaProceso(
+      this._pid,
+      this._memoriaRequerida,
+      this._cpuTotal,
+      this._cpuRestante,
+      this._estado,
+      this._quantumConsumido,
+      this._bloqueoRestante,
+    );
   }
 }

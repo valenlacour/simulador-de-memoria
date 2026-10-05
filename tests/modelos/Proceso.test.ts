@@ -160,3 +160,30 @@ describe("Proceso - finalización (RF07)", () => {
     expect(() => p.expulsar()).toThrow();
   });
 });
+
+describe("Proceso - vista de solo lectura (RF10)", () => {
+  it("la vista refleja el estado del proceso en ese momento", () => {
+    const p = new Proceso(7, 120, 4);
+    p.admitir();
+    p.despachar();
+    p.ejecutarTick();
+    const vista = p.crearVista();
+    expect(vista.obtenerPid()).toBe(7);
+    expect(vista.obtenerMemoriaRequerida()).toBe(120);
+    expect(vista.obtenerCpuTotal()).toBe(4);
+    expect(vista.obtenerCpuRestante()).toBe(3);
+    expect(vista.obtenerEstado()).toBe(EstadoProceso.EJECUTANDO);
+    expect(vista.obtenerQuantumConsumido()).toBe(1);
+    expect(vista.obtenerBloqueoRestante()).toBe(0);
+  });
+
+  it("la vista es una copia: no cambia cuando el proceso avanza", () => {
+    const p = new Proceso(1, 100, 3);
+    p.admitir();
+    const vista = p.crearVista();
+    p.despachar();
+    p.ejecutarTick();
+    expect(vista.obtenerEstado()).toBe(EstadoProceso.LISTO);
+    expect(vista.obtenerCpuRestante()).toBe(3);
+  });
+});
