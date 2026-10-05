@@ -12,6 +12,8 @@ import type { MetricasSimulacion } from "./MetricasSimulacion";
 import { PlanificadorRoundRobin } from "./PlanificadorRoundRobin";
 import { Proceso } from "./Proceso";
 import { RecolectorMetricas } from "./RecolectorMetricas";
+import { EstadoProceso } from "./EstadoProceso";
+import { ResultadoCpu, type ResultadoEjecucion } from "./ResultadoEjecucion";
 import type { VistaProceso } from "./VistaProceso";
 
 /**
@@ -105,5 +107,88 @@ export class Simulador {
       throw new Error(`No existe el proceso ${pid}`);
     }
     return proceso;
+  }
+
+  /**
+   * Avanza la simulación exactamente un tick. Fases, en orden: 1) admisión e intento de
+   * asignación, 2) actualización de bloqueados, 3) despacho y ejecución Round-Robin,
+   * 4) actualización del reloj y de las métricas.
+   */
+  avanzarTick(): void {
+    this.admitirProcesos();
+    this.cerrarTick(this.ejecutarCpu());
+  }
+
+  /** Procesos esperando memoria, en orden de registro. */
+  obtenerProcesosEsperandoMemoria(): readonly VistaProceso[] {
+    return [...this._procesos.values()]
+      .filter((proceso) => proceso.obtenerEstado() === EstadoProceso.ESPERANDO_MEMORIA)
+      .map((proceso) => proceso.crearVista());
+  }
+
+  /** Procesos terminados, en el orden en que terminaron. */
+  obtenerTerminados(): readonly VistaProceso[] {
+    return this._terminados.map((pid) => this.buscar(pid).crearVista());
+  }
+
+  private readonly _terminados: number[] = [];
+
+  private static readonly SIN_ACCION = (): void => undefined;
+
+  private static readonly ESTADOS_PENDIENTES: ReadonlySet<EstadoProceso> = new Set([
+    EstadoProceso.NUEVO,
+    EstadoProceso.ESPERANDO_MEMORIA,
+  ]);
+
+  /** Qué hace el simulador según lo ocurrido en la CPU (tabla de despacho, sin condicionales por tipo). */
+  private readonly _reacciones: Record<ResultadoCpu, (pid: number) => void> = {
+    [ResultadoCpu.SIN_PROCESO]: Simulador.SIN_ACCION,
+    [ResultadoCpu.CONTINUA]: Simulador.SIN_ACCION,
+    [ResultadoCpu.RENOVACION_QUANTUM]: Simulador.SIN_ACCION,
+    [ResultadoCpu.EXPULSION]: Simulador.SIN_ACCION,
+    [ResultadoCpu.BLOQUEO]: Simulador.SIN_ACCION,
+    [ResultadoCpu.FINALIZO]: (pid) => this.finalizar(pid),
+  };
+
+  // Fase 1: reintenta la asignación de todos los procesos pendientes, en orden de registro.
+  private admitirProcesos(): void {
+    [...this._procesos.values()]
+      .filter((proceso) => Simulador.ESTADOS_PENDIENTES.has(proceso.obtenerEstado()))
+      .forEach((proceso) => this.intentarAdmitir(proceso));
+  }
+
+  private intentarAdmitir(proceso: Proceso): void {
+    if (this._memoria.asignar(proceso.obtenerPid(), proceso.obtenerMemoriaRequerida())) {
+      proceso.admitir();
+      this._planificador.encolar(proceso);
+    } else if (proceso.obtenerEstado() === EstadoProceso.NUEVO) {
+      proceso.esperarMemoria();
+    }
+  }
+
+  // Fase 3: despacho y ejecución Round-Robin.
+  private ejecutarCpu(): ResultadoEjecucion {
+    const resultado = this._planificador.ejecutarTick();
+    this.reaccionarA(resultado);
+    return resultado;
+  }
+
+  private reaccionarA(resultado: ResultadoEjecucion): void {
+    const pid = resultado.obtenerPid();
+    if (pid !== null) {
+      this._reacciones[resultado.obtenerResultado()](pid);
+    }
+  }
+
+  /** Al terminar un proceso se libera su memoria en ese mismo tick. */
+  private finalizar(pid: number): void {
+    this._memoria.liberar(pid);
+    this._terminados.push(pid);
+  }
+
+  // Fase 4: actualización del reloj y de las métricas.
+  private cerrarTick(resultado: ResultadoEjecucion): void {
+    this._tick++;
+    this._metricas.registrarTick(resultado.obtenerResultado());
   }
 }
