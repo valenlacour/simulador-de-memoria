@@ -77,6 +77,13 @@ export class PlanificadorRoundRobin implements Planificador {
     if (proceso.obtenerCpuRestante() === 0) {
       return this.finalizar(proceso);
     }
+    const duracion = this._eventos.buscarDuracionBloqueo(
+      proceso.obtenerPid(),
+      proceso.obtenerCpuTotal() - proceso.obtenerCpuRestante(),
+    );
+    if (duracion !== null) {
+      return this.bloquear(proceso, duracion);
+    }
     return this.resolverQuantum(proceso);
   }
 
@@ -109,5 +116,12 @@ export class PlanificadorRoundRobin implements Planificador {
     proceso.terminar();
     this._procesoEnCpu = null;
     return new ResultadoEjecucion(ResultadoCpu.FINALIZO, proceso.obtenerPid());
+  }
+
+  /** El bloqueo libera la CPU (conserva la memoria) y tiene prioridad sobre la rotación por quantum. */
+  private bloquear(proceso: Proceso, duracion: number): ResultadoEjecucion {
+    proceso.bloquear(duracion);
+    this._procesoEnCpu = null;
+    return new ResultadoEjecucion(ResultadoCpu.BLOQUEO, proceso.obtenerPid());
   }
 }

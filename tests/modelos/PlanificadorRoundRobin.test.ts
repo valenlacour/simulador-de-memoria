@@ -228,3 +228,66 @@ describe("PlanificadorRoundRobin - finalización (RF07)", () => {
     expect(() => planificador.encolar(proceso)).toThrow();
   });
 });
+
+describe("PlanificadorRoundRobin - bloqueo por E/S (RF08)", () => {
+  const ejecutar = (planificador: PlanificadorRoundRobin, ticks: number) =>
+    Array.from({ length: ticks }, () => planificador.ejecutarTick());
+
+  // Evento de E/S: el proceso `pid` se bloquea al haber consumido `consumida` ticks de CPU.
+  const conEvento = (pid: number, consumida: number, duracion: number): ProveedorEventosES => ({
+    buscarDuracionBloqueo: (p, c) => (p === pid && c === consumida ? duracion : null),
+  });
+
+  it("bloquea al proceso, libera la CPU y lo saca de la cola de Listos", () => {
+    const planificador = new PlanificadorRoundRobin(5, conEvento(1, 2, 3));
+    const proceso = crearListo(1, 5);
+    planificador.encolar(proceso);
+    const [primero, segundo] = ejecutar(planificador, 2);
+    expect(primero.obtenerResultado()).toBe(ResultadoCpu.CONTINUA);
+    expect(segundo.obtenerResultado()).toBe(ResultadoCpu.BLOQUEO);
+    expect(proceso.obtenerEstado()).toBe(EstadoProceso.BLOQUEADO);
+    expect(proceso.obtenerBloqueoRestante()).toBe(3);
+    expect(planificador.obtenerProcesoEnCpu()).toBeNull();
+    expect(planificador.obtenerColaListos()).toHaveLength(0);
+  });
+
+  it("el bloqueo tiene prioridad sobre la rotación por quantum", () => {
+    const planificador = new PlanificadorRoundRobin(2, conEvento(1, 2, 3));
+    planificador.encolar(crearListo(1, 5));
+    planificador.encolar(crearListo(2, 5));
+    const [, segundo] = ejecutar(planificador, 2);
+    expect(segundo.obtenerResultado()).toBe(ResultadoCpu.BLOQUEO);
+    expect(planificador.obtenerColaListos().map((v) => v.obtenerPid())).toEqual([2]);
+  });
+
+  it("si el proceso termina en el punto del evento, finaliza y no se bloquea", () => {
+    const planificador = new PlanificadorRoundRobin(5, conEvento(1, 2, 3));
+    planificador.encolar(crearListo(1, 2));
+    const [, segundo] = ejecutar(planificador, 2);
+    expect(segundo.obtenerResultado()).toBe(ResultadoCpu.FINALIZO);
+  });
+
+  it("mientras está bloqueado no consume CPU y el siguiente proceso corre en el tick siguiente", () => {
+    const planificador = new PlanificadorRoundRobin(5, conEvento(1, 1, 4));
+    const bloqueado = crearListo(1, 5);
+    planificador.encolar(bloqueado);
+    planificador.encolar(crearListo(2, 5));
+    const [bloqueo, siguiente] = ejecutar(planificador, 2);
+    expect(bloqueo.obtenerResultado()).toBe(ResultadoCpu.BLOQUEO);
+    expect(siguiente.obtenerPid()).toBe(2);
+    expect(bloqueado.obtenerCpuRestante()).toBe(4);
+  });
+
+  it("al volver del bloqueo el proceso se encola al final y retoma la CPU", () => {
+    const planificador = new PlanificadorRoundRobin(5, conEvento(1, 1, 1));
+    const bloqueado = crearListo(1, 3);
+    planificador.encolar(bloqueado);
+    planificador.encolar(crearListo(2, 3));
+    ejecutar(planificador, 1);
+    bloqueado.avanzarBloqueo();
+    bloqueado.desbloquear();
+    planificador.encolar(bloqueado);
+    expect(planificador.obtenerColaListos().map((v) => v.obtenerPid())).toEqual([2, 1]);
+    expect(ejecutar(planificador, 4).map((r) => r.obtenerPid())).toEqual([2, 2, 2, 1]);
+  });
+});
