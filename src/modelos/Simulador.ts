@@ -13,6 +13,7 @@ import { PlanificadorRoundRobin } from "./PlanificadorRoundRobin";
 import { Proceso } from "./Proceso";
 import { RecolectorMetricas } from "./RecolectorMetricas";
 import { EstadoProceso } from "./EstadoProceso";
+import { EventoES } from "./EventoES";
 import { ResultadoCpu, type ResultadoEjecucion } from "./ResultadoEjecucion";
 import type { VistaProceso } from "./VistaProceso";
 
@@ -116,6 +117,7 @@ export class Simulador {
    */
   avanzarTick(): void {
     this.admitirProcesos();
+    this.actualizarBloqueados();
     this.cerrarTick(this.ejecutarCpu());
   }
 
@@ -146,7 +148,7 @@ export class Simulador {
     [ResultadoCpu.CONTINUA]: Simulador.SIN_ACCION,
     [ResultadoCpu.RENOVACION_QUANTUM]: Simulador.SIN_ACCION,
     [ResultadoCpu.EXPULSION]: Simulador.SIN_ACCION,
-    [ResultadoCpu.BLOQUEO]: Simulador.SIN_ACCION,
+    [ResultadoCpu.BLOQUEO]: (pid) => this._bloqueados.agregar(this.buscar(pid)),
     [ResultadoCpu.FINALIZO]: (pid) => this.finalizar(pid),
   };
 
@@ -190,5 +192,25 @@ export class Simulador {
   private cerrarTick(resultado: ResultadoEjecucion): void {
     this._tick++;
     this._metricas.registrarTick(resultado.obtenerResultado());
+  }
+
+  /**
+   * Define un evento determinista de E/S: cuando el proceso haya consumido `cpuConsumida`
+   * ticks de CPU se bloquea `duracion` ticks. Se rechazan los eventos inválidos: datos que no
+   * son enteros positivos, procesos inexistentes, puntos que ya pasaron o que nunca se
+   * alcanzarían (el proceso termina antes) y eventos repetidos en el mismo punto.
+   */
+  definirEventoES(pid: number, cpuConsumida: number, duracion: number): void {
+    const proceso = this.buscar(pid);
+    const evento = new EventoES(cpuConsumida, duracion);
+    if (proceso.obtenerCpuTotal() - proceso.obtenerCpuRestante() >= cpuConsumida) {
+      throw new Error(`El punto ${cpuConsumida} del proceso ${pid} ya pasó: nunca se dispararía`);
+    }
+    this._agenda.definirEvento(pid, proceso.obtenerCpuTotal(), evento);
+  }
+
+  // Fase 2: los bloqueados que terminan su E/S vuelven al final de la cola de Listos.
+  private actualizarBloqueados(): void {
+    this._bloqueados.avanzar().forEach((pid) => this._planificador.encolar(this.buscar(pid)));
   }
 }

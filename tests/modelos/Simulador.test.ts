@@ -346,3 +346,118 @@ describe("Simulador - orden de fases y Round-Robin (RF06, RF07, RF09)", () => {
     expect(simulador.obtenerMetricas().obtenerUtilizacionCpu()).toBeCloseTo((100 * 2) / 3);
   });
 });
+
+describe("Simulador - validación de eventos de E/S (RF08)", () => {
+  const crearConProceso = () => {
+    const simulador = crearSimulador(100, 5);
+    simulador.registrarProceso(1, 10, 5);
+    return simulador;
+  };
+
+  it("acepta un evento válido antes de empezar", () => {
+    expect(() => crearConProceso().definirEventoES(1, 2, 3)).not.toThrow();
+  });
+
+  it("rechaza un evento para un proceso inexistente", () => {
+    expect(() => crearConProceso().definirEventoES(9, 1, 1)).toThrow();
+  });
+
+  it.each([
+    [0, 1],
+    [-1, 1],
+    [1.5, 1],
+    [1, 0],
+    [1, -2],
+    [1, 1.5],
+  ])("rechaza datos inválidos (%d, %d)", (punto, duracion) => {
+    expect(() => crearConProceso().definirEventoES(1, punto, duracion)).toThrow();
+  });
+
+  it.each([5, 6])("rechaza un punto que nunca se alcanzaría (%d con CPU total 5)", (punto) => {
+    expect(() => crearConProceso().definirEventoES(1, punto, 1)).toThrow();
+  });
+
+  it("rechaza un punto que ya pasó", () => {
+    const simulador = crearConProceso();
+    [1, 2].forEach(() => simulador.avanzarTick());
+    expect(() => simulador.definirEventoES(1, 2, 1)).toThrow();
+    expect(() => simulador.definirEventoES(1, 3, 1)).not.toThrow();
+  });
+
+  it("rechaza dos eventos en el mismo punto del mismo proceso", () => {
+    const simulador = crearConProceso();
+    simulador.definirEventoES(1, 2, 3);
+    expect(() => simulador.definirEventoES(1, 2, 1)).toThrow();
+  });
+});
+
+describe("Simulador - bloqueo por E/S (RF06, RF08, RF09)", () => {
+  it("bloquea al proceso, conserva su memoria y deja de consumir CPU mientras espera", () => {
+    const simulador = crearSimulador(100, 5);
+    simulador.registrarProceso(1, 60, 3);
+    simulador.registrarProceso(2, 60, 1);
+    simulador.definirEventoES(1, 1, 3);
+    simulador.avanzarTick();
+    expect(simulador.obtenerProceso(1).obtenerEstado()).toBe(EstadoProceso.BLOQUEADO);
+    expect(simulador.obtenerProceso(1).obtenerBloqueoRestante()).toBe(3);
+    expect(simulador.obtenerBloqueados().map((v) => v.obtenerPid())).toEqual([1]);
+    expect(simulador.obtenerProcesoEnCpu()).toBeNull();
+    expect(simulador.obtenerMetricas().obtenerCambiosContexto()).toBe(1);
+    [2, 3].forEach(() => simulador.avanzarTick());
+    expect(simulador.obtenerProceso(1).obtenerEstado()).toBe(EstadoProceso.BLOQUEADO);
+    expect(simulador.obtenerProceso(1).obtenerCpuRestante()).toBe(2);
+    expect(simulador.obtenerProceso(2).obtenerEstado()).toBe(EstadoProceso.ESPERANDO_MEMORIA);
+    expect(simulador.obtenerMapaMemoria()[0].obtenerPidProceso()).toBe(1);
+    expect(simulador.obtenerMetricas().obtenerUtilizacionCpu()).toBeCloseTo(100 / 3);
+  });
+
+  it("al vencer el temporizador retorna a Listo y se despacha en ese mismo tick", () => {
+    const simulador = crearSimulador(100, 5);
+    simulador.registrarProceso(1, 10, 3);
+    simulador.definirEventoES(1, 1, 1);
+    simulador.avanzarTick();
+    expect(simulador.obtenerProceso(1).obtenerEstado()).toBe(EstadoProceso.BLOQUEADO);
+    simulador.avanzarTick();
+    const proceso = simulador.obtenerProceso(1);
+    expect(proceso.obtenerEstado()).toBe(EstadoProceso.EJECUTANDO);
+    expect(proceso.obtenerCpuRestante()).toBe(1);
+    expect(simulador.obtenerBloqueados()).toHaveLength(0);
+    expect(simulador.obtenerMetricas().obtenerCambiosContexto()).toBe(1);
+  });
+
+  it("el proceso que vuelve del bloqueo se encola al final de la cola de Listos", () => {
+    const simulador = crearSimulador(100, 5);
+    simulador.registrarProceso(1, 10, 5);
+    simulador.registrarProceso(2, 10, 5);
+    simulador.registrarProceso(3, 10, 5);
+    simulador.definirEventoES(1, 1, 1);
+    simulador.avanzarTick();
+    expect(simulador.obtenerColaListos().map((v) => v.obtenerPid())).toEqual([2, 3]);
+    simulador.avanzarTick();
+    expect(simulador.obtenerProcesoEnCpu()?.obtenerPid()).toBe(2);
+    expect(simulador.obtenerColaListos().map((v) => v.obtenerPid())).toEqual([3, 1]);
+  });
+
+  it("el bloqueo tiene prioridad sobre la rotación por quantum", () => {
+    const simulador = crearSimulador(100, 2);
+    simulador.registrarProceso(1, 10, 5);
+    simulador.registrarProceso(2, 10, 5);
+    simulador.definirEventoES(1, 2, 2);
+    [1, 2].forEach(() => simulador.avanzarTick());
+    expect(simulador.obtenerProceso(1).obtenerEstado()).toBe(EstadoProceso.BLOQUEADO);
+    expect(simulador.obtenerMetricas().obtenerCambiosContexto()).toBe(1);
+    expect(simulador.obtenerColaListos().map((v) => v.obtenerPid())).toEqual([2]);
+    [3, 4].forEach(() => simulador.avanzarTick());
+    expect(simulador.obtenerMetricas().obtenerCambiosContexto()).toBe(2);
+    expect(simulador.obtenerColaListos().map((v) => v.obtenerPid())).toEqual([1, 2]);
+  });
+
+  it("si el proceso termina en el punto del evento, finaliza y no se bloquea", () => {
+    const simulador = crearSimulador(100, 5);
+    simulador.registrarProceso(1, 10, 2);
+    simulador.definirEventoES(1, 1, 2);
+    [1, 2, 3, 4].forEach(() => simulador.avanzarTick());
+    expect(simulador.obtenerProceso(1).obtenerEstado()).toBe(EstadoProceso.TERMINADO);
+    expect(simulador.obtenerMapaMemoria()).toHaveLength(1);
+  });
+});
