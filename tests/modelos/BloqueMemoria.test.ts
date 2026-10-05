@@ -98,3 +98,27 @@ describe("BloqueMemoria - separar (RF04)", () => {
     expect(() => new BloqueMemoria(0, 100, 1).separar(10)).toThrow();
   });
 });
+
+describe("BloqueMemoria - fusionarCon (RF05)", () => {
+  it("fusiona dos bloques libres contiguos en uno solo", () => {
+    const fusionado = new BloqueMemoria(0, 100).fusionarCon(new BloqueMemoria(100, 300));
+    expect(fusionado.obtenerInicio()).toBe(0);
+    expect(fusionado.obtenerTamano()).toBe(400);
+    expect(fusionado.estaLibre()).toBe(true);
+  });
+
+  it("no fusiona si alguno está ocupado", () => {
+    const libre = new BloqueMemoria(0, 100);
+    const ocupado = new BloqueMemoria(100, 50, 1);
+    expect(() => libre.fusionarCon(ocupado)).toThrow();
+    expect(() => ocupado.fusionarCon(libre)).toThrow();
+  });
+
+  it("no fusiona bloques que no son contiguos", () => {
+    expect(() => new BloqueMemoria(0, 100).fusionarCon(new BloqueMemoria(150, 50))).toThrow();
+  });
+
+  it("el orden importa: el segundo no puede estar antes del primero", () => {
+    expect(() => new BloqueMemoria(100, 50).fusionarCon(new BloqueMemoria(0, 100))).toThrow();
+  });
+});

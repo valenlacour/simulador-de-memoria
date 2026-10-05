@@ -82,4 +82,17 @@ export class BloqueMemoria {
       new BloqueMemoria(this._inicio + tamanoPrimero, this._tamano - tamanoPrimero),
     ];
   }
+
+  /** Fusiona este bloque libre con el bloque libre que le sigue inmediatamente. */
+  fusionarCon(siguiente: BloqueMemoria): BloqueMemoria {
+    BloqueMemoria.exigir(
+      this.estaLibre() && siguiente.estaLibre(),
+      "Solo se pueden fusionar bloques libres",
+    );
+    BloqueMemoria.exigir(
+      this.obtenerFin() === siguiente.obtenerInicio(),
+      "Los bloques deben ser contiguos",
+    );
+    return new BloqueMemoria(this._inicio, this._tamano + siguiente.obtenerTamano());
+  }
 }
