@@ -66,4 +66,20 @@ export class BloqueMemoria {
     BloqueMemoria.exigir(!this.estaLibre(), "El bloque ya está libre");
     return new BloqueMemoria(this._inicio, this._tamano);
   }
+
+  /**
+   * Divide un bloque libre en dos bloques libres contiguos.
+   * El primero tiene el tamaño pedido y el segundo el resto (nunca de tamaño cero).
+   */
+  separar(tamanoPrimero: number): [BloqueMemoria, BloqueMemoria] {
+    BloqueMemoria.exigir(this.estaLibre(), "Solo se puede separar un bloque libre");
+    BloqueMemoria.exigir(
+      Number.isInteger(tamanoPrimero) && tamanoPrimero > 0 && tamanoPrimero < this._tamano,
+      "El tamaño debe ser un entero positivo menor al del bloque",
+    );
+    return [
+      new BloqueMemoria(this._inicio, tamanoPrimero),
+      new BloqueMemoria(this._inicio + tamanoPrimero, this._tamano - tamanoPrimero),
+    ];
+  }
 }

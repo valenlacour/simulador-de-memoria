@@ -69,3 +69,32 @@ describe("BloqueMemoria - ocupar y liberar (RF04, RF05)", () => {
     expect(() => new BloqueMemoria(0, 10).ocupar(0)).toThrow();
   });
 });
+
+describe("BloqueMemoria - separar (RF04)", () => {
+  it("divide un bloque libre en dos libres contiguos", () => {
+    const [primero, resto] = new BloqueMemoria(100, 400).separar(150);
+    expect(primero.obtenerInicio()).toBe(100);
+    expect(primero.obtenerTamano()).toBe(150);
+    expect(resto.obtenerInicio()).toBe(250);
+    expect(resto.obtenerTamano()).toBe(250);
+    expect(primero.obtenerFin()).toBe(resto.obtenerInicio());
+    expect(primero.estaLibre() && resto.estaLibre()).toBe(true);
+  });
+
+  it("no genera bloques de tamaño cero: rechaza el tamaño exacto o mayor", () => {
+    const b = new BloqueMemoria(0, 100);
+    expect(() => b.separar(100)).toThrow();
+    expect(() => b.separar(101)).toThrow();
+  });
+
+  it("rechaza tamaños inválidos", () => {
+    const b = new BloqueMemoria(0, 100);
+    expect(() => b.separar(0)).toThrow();
+    expect(() => b.separar(-10)).toThrow();
+    expect(() => b.separar(2.5)).toThrow();
+  });
+
+  it("no separa un bloque ocupado", () => {
+    expect(() => new BloqueMemoria(0, 100, 1).separar(10)).toThrow();
+  });
+});
