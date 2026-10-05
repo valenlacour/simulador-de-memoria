@@ -72,3 +72,48 @@ describe("Memoria - asignar (RF04)", () => {
     expect(memoria.tieneMemoriaAsignada(2)).toBe(false);
   });
 });
+
+describe("Memoria - asignar: fallos y validaciones (RF04)", () => {
+  it("falla sin modificar el mapa cuando ningún bloque alcanza", () => {
+    const memoria = new Memoria(100, new PrimerAjuste());
+    memoria.asignar(1, 60);
+    const antes = memoria.obtenerMapa();
+    expect(memoria.asignar(2, 50)).toBe(false);
+    expect(memoria.obtenerMapa()).toEqual(antes);
+    expect(memoria.tieneMemoriaAsignada(2)).toBe(false);
+  });
+
+  it("un pedido mayor a la memoria total falla sin modificar nada", () => {
+    const memoria = new Memoria(100, new PrimerAjuste());
+    expect(memoria.asignar(1, 101)).toBe(false);
+    expect(memoria.obtenerMapa()).toHaveLength(1);
+    expect(memoria.obtenerMapa()[0].estaLibre()).toBe(true);
+  });
+
+  it.each([
+    [0, 10],
+    [-1, 10],
+    [1, 0],
+    [1, -5],
+    [1, 2.5],
+  ])("rechaza datos inválidos (%d, %d)", (pid, tamano) => {
+    expect(() => new Memoria(100, new PrimerAjuste()).asignar(pid, tamano)).toThrow();
+  });
+
+  it("rechaza asignar dos veces al mismo proceso", () => {
+    const memoria = new Memoria(100, new PrimerAjuste());
+    memoria.asignar(1, 10);
+    expect(() => memoria.asignar(1, 10)).toThrow();
+    expect(memoria.obtenerMapa()).toHaveLength(2);
+  });
+
+  it("rechaza una política que devuelve un bloque ajeno a la memoria", () => {
+    const politicaDefectuosa: PoliticaAsignacion = {
+      obtenerNombre: () => "Defectuosa",
+      seleccionar: () => new BloqueMemoria(0, 100),
+    };
+    const memoria = new Memoria(100, politicaDefectuosa);
+    expect(() => memoria.asignar(1, 10)).toThrow();
+    expect(memoria.obtenerMapa()).toHaveLength(1);
+  });
+});
