@@ -1,12 +1,13 @@
 import { BloqueMemoria } from "./BloqueMemoria";
 import type { PoliticaAsignacion } from "../interfaces/PoliticaAsignacion";
+import type { GestorMemoria } from "../interfaces/GestorMemoria";
 
 /**
  * Memoria principal con asignación contigua. Mantiene un mapa ordenado de
  * bloques (libres y ocupados) y preserva sus invariantes: continuidad, tamaño
  * total constante, sin solapamientos y sin bloques libres adyacentes.
  */
-export class Memoria {
+export class Memoria implements GestorMemoria {
   private readonly _memoriaTotal: number;
   private readonly _politica: PoliticaAsignacion;
   private readonly _bloques: BloqueMemoria[];
