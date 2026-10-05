@@ -452,7 +452,7 @@ describe("Simulador - bloqueo por E/S (RF06, RF08, RF09)", () => {
     expect(simulador.obtenerColaListos().map((v) => v.obtenerPid())).toEqual([1, 2]);
   });
 
-  it("si el proceso termina en el punto del evento, finaliza y no se bloquea", () => {
+  it("tras bloquearse y volver, el proceso termina y libera su memoria", () => {
     const simulador = crearSimulador(100, 5);
     simulador.registrarProceso(1, 10, 2);
     simulador.definirEventoES(1, 1, 2);
