@@ -29,3 +29,8 @@
 - Tareas: PlanificadorRoundRobin con cola FIFO, despacho, fin de quantum (expulsión o renovación), finalización y bloqueo por E/S. Interfaces Planificador y ProveedorEventosES, clase ResultadoEjecucion y VistaProceso (copia de solo lectura).
 - Decisiones: el planificador administra la CPU y la cola, y resuelve cada tick con prioridad finalización > bloqueo > quantum. Pregunta por los eventos de E/S a través de una interfaz mínima (ProveedorEventosES), así se prueba con un doble. Hacia afuera solo entrega vistas inmutables, nunca el Proceso real. No cuenta cambios de contexto: informa qué pasó (ResultadoEjecucion) y eso lo cuenta quien coordina.
 - Obstáculos: el reemplazo de texto multilínea falla por los saltos de línea de Windows; lo resolví buscando siempre una sola línea.
+
+## 2026-10-04 (E/S y métricas)
+- Tareas: EventoES, AgendaES, ColaBloqueados con su interfaz GestorBloqueados, MetricasSimulacion y RecolectorMetricas con su interfaz ColectorMetricas.
+- Decisiones: AgendaES implementa ProveedorEventosES, el contrato que ya usa el planificador. Valida los eventos al registrarlos: datos enteros positivos (EventoES) y rechazo de los que nunca se dispararían (punto >= CPU total del proceso) o duplicados. ColaBloqueados devuelve solo pids, no objetos internos. Las métricas se recalculan al terminar cada tick y se entregan como objeto inmutable; los cambios de contexto cuentan solo expulsión por quantum con otros Listos y bloqueo por E/S (convención del RF09).
+- Obstáculos: ninguno.
