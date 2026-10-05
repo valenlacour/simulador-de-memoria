@@ -20,7 +20,7 @@ describe("RecolectorMetricas - tick 0 (RF09)", () => {
     const recolector = new RecolectorMetricas(memoria);
     memoria.asignar(1, 500);
     expect(recolector.obtenerMetricas().obtenerOcupacionMemoria()).toBe(0);
-    expect(ResultadoCpu.SIN_PROCESO).toBeDefined();
+    expect(recolector.obtenerMetricas().obtenerMemoriaLibreTotal()).toBe(1000);
   });
 });
 describe("RecolectorMetricas - registrarTick (RF09)", () => {
