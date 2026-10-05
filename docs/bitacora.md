@@ -24,3 +24,8 @@
 - Tareas: clase Memoria con asignación contigua (partición y ajuste exacto), liberación, coalescencia a izquierda, derecha y ambos lados, métricas de memoria e interfaz GestorMemoria. Probada con las tres políticas.
 - Decisiones: Memoria depende solo de la interfaz PoliticaAsignacion, que recibe por constructor. El mapa se expone como copia de solo lectura y los bloques son inmutables (doble encapsulamiento). Un helper de tests verifica las invariantes (continuidad, tamaño total, sin libres adyacentes) después de cada operación.
 - Obstáculos: ninguno.
+
+## 2026-10-04 (Planificador Round-Robin)
+- Tareas: PlanificadorRoundRobin con cola FIFO, despacho, fin de quantum (expulsión o renovación), finalización y bloqueo por E/S. Interfaces Planificador y ProveedorEventosES, clase ResultadoEjecucion y VistaProceso (copia de solo lectura).
+- Decisiones: el planificador administra la CPU y la cola, y resuelve cada tick con prioridad finalización > bloqueo > quantum. Pregunta por los eventos de E/S a través de una interfaz mínima (ProveedorEventosES), así se prueba con un doble. Hacia afuera solo entrega vistas inmutables, nunca el Proceso real. No cuenta cambios de contexto: informa qué pasó (ResultadoEjecucion) y eso lo cuenta quien coordina.
+- Obstáculos: el reemplazo de texto multilínea falla por los saltos de línea de Windows; lo resolví buscando siempre una sola línea.
