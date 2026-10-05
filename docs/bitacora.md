@@ -44,3 +44,8 @@
 - Tareas: un archivo de pruebas con los 8 casos mínimos del Anexo I, probados de punta a punta a través del Simulador (26 tests). Quedan 302 tests en verde y cobertura del 100%.
 - Decisiones: cada describe corresponde a una fila de la tabla del Anexo I, así la matriz RF > clase > test del informe los puede señalar directamente. Para saber qué proceso ejecutó en cada tick comparo la CPU restante antes y después, sin agregar métodos al Simulador solo para los tests.
 - Obstáculos: armar mapas con huecos en posiciones exactas obliga a usar quantum 1 y CPU distintas para controlar en qué tick termina cada proceso.
+
+## 2026-10-05 (CI y README)
+- Tareas: workflow de GitHub Actions que instala, verifica tipos y corre las pruebas con cobertura en cada push a main. Script `typecheck`. README con requisitos, instalación, comandos, alcance de la cobertura y estructura.
+- Decisiones: el CI usa `npm ci` y el mismo comando de cobertura que se documenta, así el reporte es reproducible sobre el commit entregado. El umbral de vitest.config.ts hace fallar el build si la cobertura de líneas no supera el 90%.
+- Obstáculos: al pegar texto ya renderizado se pierde el formato Markdown; ahora copio siempre desde el bloque de código.
