@@ -1,6 +1,7 @@
 import { Simulador } from "../../src/modelos/Simulador";
 import { ConfiguracionSimulador } from "../../src/modelos/ConfiguracionSimulador";
 import { EstadoProceso } from "../../src/modelos/EstadoProceso";
+import type { VistaProceso } from "../../src/modelos/VistaProceso";
 import { NombrePolitica } from "../../src/politicas/NombrePolitica";
 import { verificarInvariantesSistema } from "./invariantesSistema";
 
@@ -39,9 +40,9 @@ describe("Simulador - invariantes del sistema (RF10)", () => {
     const simulador = crearEscenario(NombrePolitica.FIRST_FIT);
     simulador.avanzarTick();
     const antes = simulador.obtenerColaListos().length;
-    (simulador.obtenerColaListos() as unknown[]).length = 0;
-    (simulador.obtenerBloqueados() as unknown[]).length = 0;
-    (simulador.obtenerProcesos() as unknown[]).length = 0;
+    (simulador.obtenerColaListos() as VistaProceso[]).length = 0;
+    (simulador.obtenerBloqueados() as VistaProceso[]).length = 0;
+    (simulador.obtenerProcesos() as VistaProceso[]).length = 0;
     expect(simulador.obtenerColaListos()).toHaveLength(antes);
     expect(simulador.obtenerProcesos()).toHaveLength(5);
     verificarInvariantesSistema(simulador, 100);
