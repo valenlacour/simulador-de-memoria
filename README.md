@@ -64,3 +64,23 @@ simulador.definirEventoES(1, 1, 2);
 simulador.avanzarTick();
 simulador.obtenerMetricas().obtenerOcupacionMemoria(); // 9.765625
 ```
+
+## Diagramas UML
+
+Archivos editables (draw.io) y su versión legible (PNG) en `docs/uml/`:
+
+| Diagrama | Editable | Imagen |
+|---|---|---|
+| Clases | [Diagrama de Clases.drawio](docs/uml/Diagrama%20de%20Clases.drawio) | [PNG](docs/uml/Diagrama%20de%20clases.drawio.png) |
+| Secuencia 1 - avanzarTick (RF06) | [.drawio](docs/uml/Diagrama%20de%20Secuencia-1-avanzarTick.drawio) | [PNG](docs/uml/Diagrama%20de%20Secuencia-1-avanzarTick.drawio.png) |
+| Secuencia 2 - registro y admisión (RF02-RF04) | [.drawio](docs/uml/Diagrama%20de%20Secuencia-2-registro-y-admision.drawio) | [PNG](docs/uml/Diagrama%20de%20Secuencia-2-registro-y-admision.drawio.png) |
+| Secuencia 3 - ejecución y coalescencia (RF05, RF07, RF08) | [.drawio](docs/uml/Diagrama%20de%20Secuencia-3-ejecucion-y-coalescencia.drawio) | [PNG](docs/uml/Diagrama%20de%20Secuencia-3-ejecucion-y-coalescencia.drawio.png) |
+| Estados del proceso | [.drawio](docs/uml/Diagrama%20de%20estado.drawio) | [PNG](docs/uml/Diagrama%20de%20estado.drawio.png) |
+
+Los `.drawio` se abren y se editan en https://app.diagrams.net.
+
+![Diagrama de clases](docs/uml/Diagrama%20de%20clases.drawio.png)
+
+## Informe técnico
+
+[docs/Informe-AE2-CarruegaLacour.pdf](docs/Informe-AE2-CarruegaLacour.pdf)

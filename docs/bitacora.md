@@ -53,3 +53,7 @@
 - Tareas: pruebas que corren la misma carga con First-Fit, Best-Fit y Worst-Fit y comparan mapa final, procesos en espera, memoria libre, mayor hueco y fragmentación externa (14 tests). Quedan 316 tests en verde y cobertura del 100%.
 - Decisiones: un escenario donde gana cada política, para mostrar que ninguna es mejor en todos los casos. Una prueba muestra que un pedido espera aunque la memoria libre total alcance, y otra que la coalescencia al liberar el bloque separador elimina la fragmentación y permite admitir al proceso en espera.
 - Obstáculos: encontrar cargas donde cada política dé un resultado distinto; armé los huecos con quantum 1 para controlar en qué tick termina cada proceso.
+## 2026-10-05 (Diagramas e informe)
+- Tareas: diagrama de clases, tres diagramas de secuencia (RF06; RF02 a RF04; RF05, RF07 y RF08) y diagrama de estados en draw.io, con su PNG. Informe técnico en PDF con capturas de las pruebas y de la cobertura. Tag v1.0 para la entrega.
+- Decisiones: los diagramas se guardan editables (.drawio) y legibles (.png) en docs/uml, enlazados desde el README. Las capturas del informe salen de mi propia ejecución de npm test y npm run test:coverage.
+- Obstáculos: el comando de pruebas de colaboración que probé primero apuntaba a una carpeta que no existe en mi repo; mis pruebas de colaboración están en tests/modelos/Simulador*.
